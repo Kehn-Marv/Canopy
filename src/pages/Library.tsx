@@ -97,6 +97,7 @@ function AssetRow({ asset, onShare }: {asset: Asset;onShare: () => void;}) {
 }
 
 export function Library() {
+  const navigate = useNavigate();
   const { assets, grants, signals, acks } = useVault();
   const [query, setQuery] = useState('');
   const [project, setProject] = useState('all');
@@ -177,16 +178,30 @@ export function Library() {
       
 
       <div className="flex flex-wrap items-center gap-3 border-b border-border/60 px-4 py-3.5 sm:px-6">
-        <div className="relative min-w-[12rem] flex-1">
+        <form 
+          className="relative min-w-[12rem] flex-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const val = query.trim();
+            if (val.includes('/#/a/')) {
+              const match = val.match(/\/#\/a\/([a-zA-Z0-9_-]+)/);
+              if (match) {
+                navigate(`/a/${match[1]}`);
+              }
+            } else if (val.length > 20 && !val.includes(' ')) {
+              // Might be a raw token
+              navigate(`/a/${val}`);
+            }
+          }}
+        >
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80" />
           <Input
             value={query}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
-            placeholder="Search names, projects"
+            placeholder="Search, or paste link"
             className="pl-9 transition-elegant focus-visible:bg-background/80"
             aria-label="Search the library" />
-          
-        </div>
+        </form>
         <Select value={project} onValueChange={setProject}>
           <SelectTrigger className="w-auto min-w-[8.5rem]" aria-label="Filter by project">
             <SelectValue />
