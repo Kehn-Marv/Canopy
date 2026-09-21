@@ -310,6 +310,11 @@ export async function inspectToken(token: string): Promise<{grant?: Grant;asset?
     // Fall back to cloud fetch
     const remote = await fetchGrantFromCloud(id);
     if (!remote) return {};
+    
+    // Cache the remote asset and grant locally so local casPut operations don't fail
+    await put(STORES.assets, remote.asset);
+    await put(STORES.grants, remote.grant);
+    
     return { grant: remote.grant, asset: remote.asset };
   }
   const asset = await get<Asset>(STORES.assets, grant.assetId);
