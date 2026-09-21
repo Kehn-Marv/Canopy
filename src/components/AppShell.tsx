@@ -37,7 +37,8 @@ export function AppShell({ children }: {children: React.ReactNode;}) {
   const [shortcutHint, setShortcutHint] = useState(false);
   const [linkInput, setLinkInput] = useState('');
 
-  const openLink = () => {
+  const openLink = (e?: React.FormEvent) => {
+    e?.preventDefault();
     const trimmed = linkInput.trim();
     if (!trimmed) return;
     /* Extract token from various link formats:
