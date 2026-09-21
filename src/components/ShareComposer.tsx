@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Copy, Plus, Search, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { useVault } from '../contexts/VaultContext';
+import { searchUser, type DirectoryProfile } from '../lib/directory';
 import { DEFAULT_TERMS, ttlOptions } from '../lib/policy';
 import { copyText } from '../lib/download';
 import { emailDomain, formatDateTime, initials, isValidEmail } from '../lib/format';
@@ -42,7 +43,10 @@ export function ShareComposer({ asset, open, onOpenChange }: Props) {
   const [query, setQuery] = useState('');
   const [recipientId, setRecipientId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState({ name: '', email: '', affiliation: '', role: 'collaborator' as PersonRole });
+  const [searchDirQuery, setSearchDirQuery] = useState('');
+  const [searchingDir, setSearchingDir] = useState(false);
+  const [directoryProfile, setDirectoryProfile] = useState<DirectoryProfile | null>(null);
+  const [draftRole, setDraftRole] = useState<PersonRole>('collaborator');
 
   const [mode, setMode] = useState<GrantMode>('protected');
   const [annotate, setAnnotate] = useState(false);
@@ -64,7 +68,9 @@ export function ShareComposer({ asset, open, onOpenChange }: Props) {
     setQuery('');
     setRecipientId(null);
     setCreating(false);
-    setDraft({ name: '', email: '', affiliation: '', role: 'collaborator' });
+    setSearchDirQuery('');
+    setDirectoryProfile(null);
+    setDraftRole('collaborator');
     setMode('protected');
     setAnnotate(false);
     setAllowExport(false);
@@ -98,17 +104,35 @@ export function ShareComposer({ asset, open, onOpenChange }: Props) {
   const recipient = people.find((p) => p.id === recipientId) ?? null;
   const outside = recipient && meta?.orgDomain ? emailDomain(recipient.email) !== meta.orgDomain : false;
 
+  const handleDirectorySearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!searchDirQuery.trim()) return;
+      setSearchingDir(true);
+      setError(null);
+      try {
+        const profile = await searchUser(searchDirQuery);
+        if (!profile) throw new Error(`No user found with username '${searchDirQuery}'`);
+        setDirectoryProfile(profile);
+      } catch (err) {
+        setDirectoryProfile(null);
+        setError((err as Error).message);
+      } finally {
+        setSearchingDir(false);
+      }
+    }
+  };
+
   const createRecipient = async () => {
-    if (!draft.name.trim()) return setError('Give the collaborator a name.');
-    if (!isValidEmail(draft.email)) return setError('That email address does not look valid.');
+    if (!directoryProfile) return setError('Search and select a user first.');
     setPending(true);
     setError(null);
     try {
       const person: Person = await addPerson({
-        name: draft.name,
-        email: draft.email,
-        affiliation: draft.affiliation,
-        role: draft.role,
+        name: directoryProfile.fullName,
+        email: directoryProfile.email,
+        affiliation: directoryProfile.institution,
+        role: draftRole,
         departureAt: null
       });
       setRecipientId(person.id);
@@ -242,43 +266,54 @@ export function ShareComposer({ asset, open, onOpenChange }: Props) {
                     </Button>
                   </div> :
               creating ?
-              <div className="space-y-3 rounded-[0.75rem] border border-border/60 bg-background/50 p-4 shadow-sm">
-                    <div className="space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Input
-                      placeholder="Full name"
-                      value={draft.name}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, name: e.target.value })}
-                      aria-label="Collaborator name" />
-                    
-                        <Input
-                      placeholder="email@institution"
-                      value={draft.email}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, email: e.target.value })}
-                      aria-label="Collaborator email" />
+              <div className="space-y-4 rounded-[0.75rem] border border-border/60 bg-background/50 p-4 shadow-sm">
+                    {!directoryProfile ? (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="searchUser" className="text-[13px] font-medium text-foreground/80">Search by username</Label>
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                          <Input
+                            id="searchUser"
+                            placeholder="Enter username and press Enter"
+                            value={searchDirQuery}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchDirQuery(e.target.value)}
+                            onKeyDown={handleDirectorySearch}
+                            disabled={searchingDir}
+                            className="pl-9 h-11 bg-background/50" />
+                        </div>
+                        {searchingDir && <p className="text-[11.5px] text-muted-foreground pt-1">Searching global directory...</p>}
                       </div>
-                    
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Input
-                      placeholder="Department or institution"
-                      value={draft.affiliation}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, affiliation: e.target.value })}
-                      aria-label="Affiliation" />
-                    
-                        <Select value={draft.role} onValueChange={(v) => setDraft({ ...draft, role: v as PersonRole })}>
-                          <SelectTrigger aria-label="Role">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ROLES.map((r) =>
-                        <SelectItem key={r.value} value={r.value}>
-                                {r.label}
-                              </SelectItem>
-                        )}
-                          </SelectContent>
-                        </Select>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-[13px] font-semibold text-primary">
+                             {initials(directoryProfile.fullName)}
+                           </span>
+                           <div>
+                             <p className="text-[13.5px] font-semibold">{directoryProfile.fullName}</p>
+                             <p className="text-[12px] text-muted-foreground">{directoryProfile.email} • {directoryProfile.institution}</p>
+                           </div>
+                           <Button variant="ghost" size="xs" onClick={() => setDirectoryProfile(null)} className="ml-auto">
+                             Change
+                           </Button>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[13px] font-medium text-foreground/80">Collaborator role</Label>
+                          <Select value={draftRole} onValueChange={(v) => setDraftRole(v as PersonRole)}>
+                            <SelectTrigger aria-label="Role" className="bg-background/50">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ROLES.map((r) =>
+                          <SelectItem key={r.value} value={r.value}>
+                                  {r.label}
+                                </SelectItem>
+                          )}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => void createRecipient()} disabled={pending}>
                         Add collaborator

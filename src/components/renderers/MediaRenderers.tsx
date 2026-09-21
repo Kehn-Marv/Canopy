@@ -85,13 +85,12 @@ export function PdfRenderer({ url, name }: RendererProps) {
         title={`Protected preview of ${name}`}
         src={url}
         onError={() => setFailed(true)}
-        sandbox="allow-same-origin"
+        sandbox="allow-same-origin allow-scripts"
         referrerPolicy="no-referrer"
         className="h-[66vh] w-full border-0 bg-muted/40" />
 
       <p className="border-t border-border bg-muted/30 px-4 py-2 text-[11.5px] text-muted-foreground">
-        Rendered in an isolated frame with scripts disabled. Embedded actions and remote resources
-        inside the PDF are blocked.
+        Rendered in an isolated frame. Embedded actions and remote resources inside the PDF are blocked.
       </p>
     </div>);
 

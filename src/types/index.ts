@@ -20,6 +20,7 @@ export interface VaultMeta {
   labName: string;
   orgDomain: string;
   ownerPersonId: string;
+  username: string;
   /** base64 PBKDF2 salt, 16 random bytes. */
   kdfSalt: string;
   kdfIterations: number;

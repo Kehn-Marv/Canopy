@@ -34,9 +34,12 @@ function Backdrop() {
 
 }
 
+import { registerUser } from '../lib/directory';
+
 function CreateVault() {
   const { createVault, busy } = useVault();
   const [form, setForm] = useState({
+    username: '',
     labName: '',
     orgDomain: '',
     ownerName: '',
@@ -52,6 +55,7 @@ function CreateVault() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    if (!form.username.trim() || !/^[a-zA-Z0-9_]{3,}$/.test(form.username.trim())) return setError('Username must be at least 3 characters and only contain letters, numbers, and underscores.');
     if (!form.labName.trim()) return setError('Name the laboratory or group this vault belongs to.');
     if (!form.ownerName.trim()) return setError('Enter your name — it is what appears in the audit ledger.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.ownerEmail)) return setError('Enter a valid email address.');
@@ -59,7 +63,16 @@ function CreateVault() {
     if (form.passphrase !== form.confirm) return setError('The two passphrases do not match.');
     if (form.securityQuestion.trim() && !form.securityAnswer.trim()) return setError('You set a security question but left the answer blank.');
     try {
+      // First try registering the user in the global directory
+      await registerUser({
+        username: form.username.trim(),
+        fullName: form.ownerName.trim(),
+        email: form.ownerEmail.trim(),
+        institution: form.labName.trim()
+      });
+
       await createVault({
+        username: form.username.trim(),
         labName: form.labName,
         orgDomain: form.orgDomain.replace(/^@/, '').trim(),
         ownerName: form.ownerName,
@@ -115,6 +128,19 @@ function CreateVault() {
 
         {/* Personal Details Group */}
         <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="username" className="text-[13px] font-medium text-foreground/80">Username</Label>
+            <Input
+              id="username"
+              className="h-11 bg-background/50 shadow-sm transition-all placeholder:text-muted-foreground/40 focus:border-primary/50 focus:bg-background focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              value={form.username}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+              placeholder="e.g. adaeze_n"
+              autoComplete="username" />
+            <p className="pt-0.5 text-[11.5px] leading-relaxed text-muted-foreground/70">
+              This is how collaborators will find and add you to their vaults. Minimum 3 characters.
+            </p>
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="ownerName" className="text-[13px] font-medium text-foreground/80">Your name</Label>
             <Input

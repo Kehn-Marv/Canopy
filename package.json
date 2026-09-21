@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
+    "@libsql/client": "^0.18.0",
     "@tauri-apps/api": "^2.11.1",
     "clsx": "latest",
     "jszip": "^3.10.2",

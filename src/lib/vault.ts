@@ -68,6 +68,7 @@ export async function loadMeta(): Promise<VaultMeta | undefined> {
 }
 
 export async function createVault(input: {
+  username: string;
   labName: string;
   orgDomain: string;
   ownerName: string;
@@ -125,6 +126,7 @@ export async function createVault(input: {
     labName: input.labName.trim(),
     orgDomain: input.orgDomain.trim().toLowerCase(),
     ownerPersonId: owner.id,
+    username: input.username.trim(),
     kdfSalt: toBase64(salt),
     kdfIterations: KDF_ITERATIONS,
     verifier,
