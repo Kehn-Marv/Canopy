@@ -189,7 +189,7 @@ export function ShareComposer({ asset, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(next: boolean) => !pending && onOpenChange(next)}>
-      <DialogContent className="squircle-element max-h-[92vh] gap-0 overflow-hidden border-border/60 bg-background/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-2xl">
+      <DialogContent className="squircle-element max-h-[92vh] w-[calc(100vw-2rem)] sm:w-full gap-0 overflow-hidden border-border/60 bg-background/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-2xl">
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle className="text-[16px] font-semibold tracking-tight">
             {issued ? 'Link issued' : 'Share this item'}

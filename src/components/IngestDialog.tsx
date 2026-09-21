@@ -80,7 +80,7 @@ export function IngestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="squircle-element gap-0 overflow-hidden border-border/60 bg-background/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-xl">
+      <DialogContent className="squircle-element w-[calc(100vw-2rem)] sm:w-full gap-0 overflow-hidden border-border/60 bg-background/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-xl">
         <div className="p-7 space-y-6">
           <DialogHeader>
             <DialogTitle className="text-[18px] tracking-tight">Seal new material</DialogTitle>
