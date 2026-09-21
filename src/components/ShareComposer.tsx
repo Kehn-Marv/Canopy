@@ -104,22 +104,26 @@ export function ShareComposer({ asset, open, onOpenChange }: Props) {
   const recipient = people.find((p) => p.id === recipientId) ?? null;
   const outside = recipient && meta?.orgDomain ? emailDomain(recipient.email) !== meta.orgDomain : false;
 
+  const triggerSearch = async () => {
+    if (!searchDirQuery.trim()) return;
+    setSearchingDir(true);
+    setError(null);
+    try {
+      const profile = await searchUser(searchDirQuery);
+      if (!profile) throw new Error(`No user found with username '${searchDirQuery}'`);
+      setDirectoryProfile(profile);
+    } catch (err) {
+      setDirectoryProfile(null);
+      setError((err as Error).message);
+    } finally {
+      setSearchingDir(false);
+    }
+  };
+
   const handleDirectorySearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (!searchDirQuery.trim()) return;
-      setSearchingDir(true);
-      setError(null);
-      try {
-        const profile = await searchUser(searchDirQuery);
-        if (!profile) throw new Error(`No user found with username '${searchDirQuery}'`);
-        setDirectoryProfile(profile);
-      } catch (err) {
-        setDirectoryProfile(null);
-        setError((err as Error).message);
-      } finally {
-        setSearchingDir(false);
-      }
+      await triggerSearch();
     }
   };
 
@@ -315,9 +319,15 @@ export function ShareComposer({ asset, open, onOpenChange }: Props) {
                       </div>
                     )}
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => void createRecipient()} disabled={pending}>
-                        Add collaborator
-                      </Button>
+                      {!directoryProfile ? (
+                        <Button size="sm" onClick={() => void triggerSearch()} disabled={searchingDir}>
+                          {searchingDir ? 'Searching...' : 'Search'}
+                        </Button>
+                      ) : (
+                        <Button size="sm" onClick={() => void createRecipient()} disabled={pending}>
+                          Add collaborator
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" onClick={() => setCreating(false)}>
                         Cancel
                       </Button>
