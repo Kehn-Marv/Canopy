@@ -30,6 +30,12 @@ export interface VaultMeta {
   maxBatchFiles: number;
   maxFileBytes: number;
   demoSeeded: boolean;
+  /** Security question for password recovery. Null if not set. */
+  securityQuestion: string | null;
+  /** base64 PBKDF2 salt for the recovery key derived from the security answer. */
+  recoveryKdfSalt: string | null;
+  /** Master key wrapped under the recovery key. Null if no security question was set. */
+  recoveryWrappedKey: SealedBlob | null;
 }
 
 export type AssetKind = 'document' | 'dataset' | 'image' | 'archive' | 'other';

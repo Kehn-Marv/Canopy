@@ -73,6 +73,8 @@ export async function createVault(input: {
   ownerName: string;
   ownerEmail: string;
   passphrase: string;
+  securityQuestion?: string;
+  securityAnswer?: string;
   device: {id: string;label: string;};
 }): Promise<{meta: VaultMeta;masterKey: CryptoKey;owner: Person;}> {
   if (input.passphrase.length < 10) {
@@ -84,6 +86,24 @@ export async function createVault(input: {
   const salt = randomBytes(16);
   const masterKey = await deriveMasterKey(input.passphrase, salt, KDF_ITERATIONS);
   const verifier = await seal(masterKey, new TextEncoder().encode(VERIFIER_PLAINTEXT));
+
+  /* Recovery key: wrap the master key under a key derived from the security answer. */
+  let securityQuestion: string | null = null;
+  let recoveryKdfSalt: string | null = null;
+  let recoveryWrappedKey: import('../types').SealedBlob | null = null;
+  if (input.securityQuestion?.trim() && input.securityAnswer?.trim()) {
+    securityQuestion = input.securityQuestion.trim();
+    const recoverySalt = randomBytes(16);
+    recoveryKdfSalt = toBase64(recoverySalt);
+    const recoveryKey = await deriveMasterKey(
+      input.securityAnswer.trim().toLowerCase(),
+      recoverySalt,
+      KDF_ITERATIONS
+    );
+    /* Export and seal the master key's raw bytes under the recovery key. */
+    const rawMaster = await crypto.subtle.exportKey('raw', masterKey);
+    recoveryWrappedKey = await seal(recoveryKey, new Uint8Array(rawMaster));
+  }
 
   const owner: Person = {
     id: newId('per'),
@@ -112,7 +132,10 @@ export async function createVault(input: {
     autoLockMinutes: 15,
     maxBatchFiles: LIMITS.maxBatchFiles,
     maxFileBytes: LIMITS.maxFileBytes,
-    demoSeeded: false
+    demoSeeded: false,
+    securityQuestion,
+    recoveryKdfSalt,
+    recoveryWrappedKey
   };
 
   await put(STORES.people, owner);
@@ -194,11 +217,26 @@ actor: Actor)
     });
   }
   await putMany(STORES.assets, rewrapped);
+  /* Re-wrap recovery key under the new master key if a security question exists. */
+  let recoveryKdfSalt = meta.recoveryKdfSalt;
+  let recoveryWrappedKey = meta.recoveryWrappedKey;
+  if (meta.securityQuestion && meta.recoveryKdfSalt) {
+    // The recovery key itself doesn't change, but the master key it wraps does.
+    // We need to re-seal the new master key under the same recovery key.
+    // Since we don't have the recovery answer here, we export the new master key
+    // and ask the user to re-set the recovery separately if needed.
+    // For now, we clear the recovery and require re-setup.
+    recoveryKdfSalt = null;
+    recoveryWrappedKey = null;
+  }
+
   const nextMeta: VaultMeta = {
     ...meta,
     kdfSalt: toBase64(salt),
     kdfIterations: KDF_ITERATIONS,
-    verifier: await seal(nextKey, new TextEncoder().encode(VERIFIER_PLAINTEXT))
+    verifier: await seal(nextKey, new TextEncoder().encode(VERIFIER_PLAINTEXT)),
+    recoveryKdfSalt,
+    recoveryWrappedKey
   };
   await put(STORES.meta, nextMeta);
   await appendEvent({
@@ -210,6 +248,84 @@ actor: Actor)
     detail: { reason: 'passphrase rotated', assetsRewrapped: rewrapped.length }
   });
   return nextMeta;
+}
+
+/**
+ * Recover a forgotten passphrase using the security question answer.
+ * Derives the recovery key from the answer, unwraps the master key,
+ * then re-wraps everything under a new passphrase.
+ */
+export async function recoverPassphrase(input: {
+  answer: string;
+  newPassphrase: string;
+  device: {id: string;label: string;};
+}): Promise<{meta: VaultMeta;masterKey: CryptoKey;}> {
+  if (input.newPassphrase.length < 10) {
+    throw new ValidationError('The new passphrase must be at least 10 characters.');
+  }
+  const meta = await loadMeta();
+  if (!meta) throw new ValidationError('No vault found.');
+  if (!meta.securityQuestion || !meta.recoveryKdfSalt || !meta.recoveryWrappedKey) {
+    throw new ValidationError('No security question was set for this vault.');
+  }
+
+  /* Derive the recovery key from the answer. */
+  const recoveryKey = await deriveMasterKey(
+    input.answer.trim().toLowerCase(),
+    fromBase64(meta.recoveryKdfSalt),
+    meta.kdfIterations
+  );
+
+  /* Unwrap the original master key. */
+  let rawMaster: ArrayBuffer;
+  try {
+    rawMaster = (await unseal(recoveryKey, meta.recoveryWrappedKey)).buffer;
+  } catch {
+    throw new ValidationError('That answer does not match. Recovery failed.');
+  }
+
+  /* Import the recovered master key. */
+  const recoveredMasterKey = await crypto.subtle.importKey(
+    'raw', rawMaster, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
+  );
+
+  /* Now re-wrap everything under a new passphrase, exactly like changePassphrase. */
+  const newSalt = randomBytes(16);
+  const newMasterKey = await deriveMasterKey(input.newPassphrase, newSalt, KDF_ITERATIONS);
+
+  const assets = await getAll<Asset>(STORES.assets);
+  const rewrapped: Asset[] = [];
+  for (const asset of assets) {
+    const contentKey = await unwrapContentKey(recoveredMasterKey, asset.wrappedKey);
+    rewrapped.push({
+      ...asset,
+      wrappedKey: await wrapContentKey(newMasterKey, contentKey),
+      rev: asset.rev + 1
+    });
+  }
+  await putMany(STORES.assets, rewrapped);
+
+  /* Re-wrap the new master key under the recovery key for future recoveries. */
+  const rawNewMaster = await crypto.subtle.exportKey('raw', newMasterKey);
+  const newRecoveryWrappedKey = await seal(recoveryKey, new Uint8Array(rawNewMaster));
+
+  const nextMeta: VaultMeta = {
+    ...meta,
+    kdfSalt: toBase64(newSalt),
+    kdfIterations: KDF_ITERATIONS,
+    verifier: await seal(newMasterKey, new TextEncoder().encode(VERIFIER_PLAINTEXT)),
+    recoveryWrappedKey: newRecoveryWrappedKey
+  };
+  await put(STORES.meta, nextMeta);
+  await appendEvent({
+    type: 'vault.unlocked',
+    actorId: meta.ownerPersonId,
+    actorLabel: 'Owner (recovery)',
+    deviceId: input.device.id,
+    deviceLabel: input.device.label,
+    detail: { reason: 'passphrase recovered via security question', assetsRewrapped: rewrapped.length }
+  });
+  return { meta: nextMeta, masterKey: newMasterKey };
 }
 
 export async function updateMeta(patch: Partial<VaultMeta>): Promise<VaultMeta> {

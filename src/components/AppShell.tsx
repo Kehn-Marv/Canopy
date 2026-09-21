@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Archive,
   CloudOff,
+  Link2,
   Lock,
   PackageOpen,
   Radar,
@@ -34,6 +35,22 @@ export function AppShell({ children }: {children: React.ReactNode;}) {
   const navigate = useNavigate();
   const location = useLocation();
   const [shortcutHint, setShortcutHint] = useState(false);
+  const [linkInput, setLinkInput] = useState('');
+
+  const openLink = () => {
+    const trimmed = linkInput.trim();
+    if (!trimmed) return;
+    /* Extract token from various link formats:
+       - Full URL: https://domain/#/a/TOKEN or https://domain/a/TOKEN
+       - Hash path: #/a/TOKEN
+       - Just the token: TOKEN */
+    const match = trimmed.match(/\/a\/([A-Za-z0-9_-]+)/);
+    const token = match ? match[1] : trimmed.replace(/[^A-Za-z0-9_-]/g, '');
+    if (token) {
+      setLinkInput('');
+      navigate(`/a/${token}`);
+    }
+  };
 
   const liveGrants = grants.filter((g) => g.status === 'active').length;
   const ackedIds = new Set(acks.map((a) => a.id));
@@ -88,7 +105,21 @@ export function AppShell({ children }: {children: React.ReactNode;}) {
           <Wordmark />
         </div>
 
-        <ul className="flex-1 space-y-2 px-3 mt-4">
+        {/* Link input */}
+        <div className="px-3 pb-3">
+          <div className="flex items-center gap-1.5 rounded-lg border border-border/40 bg-background/50 px-2.5 py-1.5 transition-all focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20">
+            <Link2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+            <input
+              type="text"
+              value={linkInput}
+              onChange={(e) => setLinkInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); openLink(); } }}
+              placeholder="Paste a share link"
+              className="min-w-0 flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground/40 outline-none" />
+          </div>
+        </div>
+
+        <ul className="flex-1 space-y-2 px-3 mt-1">
           {items.map((item) =>
           <li key={item.to}>
               <NavLink

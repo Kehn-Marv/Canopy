@@ -26,6 +26,7 @@ import {
   getContentKey,
   loadMeta,
   readAsset,
+  recoverPassphrase as recoverPassphraseOp,
   unlockVault as unlockVaultOp,
   updateAsset as updateAssetOp,
   updateMeta as updateMetaOp } from
@@ -95,8 +96,11 @@ interface VaultValue {
     ownerName: string;
     ownerEmail: string;
     passphrase: string;
+    securityQuestion?: string;
+    securityAnswer?: string;
   }) => Promise<void>;
   unlock: (passphrase: string) => Promise<void>;
+  recoverPassphrase: (answer: string, newPassphrase: string) => Promise<void>;
   lock: (reason?: string) => void;
   refresh: () => Promise<void>;
 
@@ -596,6 +600,29 @@ export function VaultProvider({ children }: {children: React.ReactNode;}) {
     [actor, clearMaterialised, refresh]
   );
 
+  const recoverPassphrase = useCallback<VaultValue['recoverPassphrase']>(
+    async (answer, newPassphrase) => {
+      if (!device) throw new Error('Device identity is not ready yet.');
+      setBusy(true);
+      try {
+        const { meta: recovered, masterKey } = await recoverPassphraseOp({
+          answer,
+          newPassphrase,
+          device
+        });
+        masterKeyRef.current = masterKey;
+        setMeta(recovered);
+        setPhase('unlocked');
+        lastActivity.current = Date.now();
+        await touchDevice();
+        await refresh();
+      } finally {
+        setBusy(false);
+      }
+    },
+    [device, refresh]
+  );
+
   const saveSettings = useCallback<VaultValue['saveSettings']>(
     async (patch) => {
       const updated = await updateMetaOp(patch);
@@ -695,6 +722,7 @@ export function VaultProvider({ children }: {children: React.ReactNode;}) {
       unackSignal,
       verifyLedger,
       rotatePassphrase,
+      recoverPassphrase,
       saveSettings,
       destroyVault
     }),
@@ -704,7 +732,7 @@ export function VaultProvider({ children }: {children: React.ReactNode;}) {
     refresh, queue, materialise, releaseMaterialised, recordOpen, recordCapture,
     deleteAsset, editAsset, issueGrant, revoke, revokeBatch, extend, addPerson,
     editPerson, offboard, reinstate, ackSignal, unackSignal, verifyLedger,
-    rotatePassphrase, saveSettings, destroyVault]
+    rotatePassphrase, recoverPassphrase, saveSettings, destroyVault]
 
   );
 
