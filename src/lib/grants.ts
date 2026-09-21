@@ -7,6 +7,7 @@
  * says so.
  */
 
+import { toast } from 'sonner';
 import {
   deriveGrantKey,
   fromBase64,
@@ -148,7 +149,7 @@ input: CreateGrantInput)
     await uploadToCloud(input.asset, chunks, grant);
   } catch (err) {
     console.error('Failed to sync grant to cloud:', err);
-    // Don't fail the local grant creation if cloud sync fails
+    toast.error('Failed to upload share to cloud. Ensure Turso tables are created.');
   }
 
   return { grant, token, link: grantLink(token) };
