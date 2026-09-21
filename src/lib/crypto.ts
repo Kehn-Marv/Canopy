@@ -117,7 +117,7 @@ iterations = KDF_ITERATIONS)
     { name: 'PBKDF2', salt: salt as BufferSource, iterations, hash: 'SHA-256' },
     base,
     { name: 'AES-GCM', length: 256 },
-    false,
+    true, // Extractable so we can wrap it under the recovery key
     ['encrypt', 'decrypt']
   );
 }
