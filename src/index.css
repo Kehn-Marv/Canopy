@@ -1,0 +1,244 @@
+/* --- MANAGED FONT IMPORTS START (do not edit manually) --- */
+/* INTERNAL USE NAME: Heading */
+@import url('https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+/* INTERNAL USE NAME: Mono */
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+/* --- MANAGED FONT IMPORTS END --- */
+
+/* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORTS — DO NOT DELETE THIS COMMENT */
+
+/* CRITICAL: THE FOLLOWING TAILWIND IMPORTS MUST NEVER BE DELETED OR REORDERED — DO NOT DELETE THIS COMMENT */
+@import './_designSystem/ds-6551b66a-cfd3-4df9-a9b1-9ead8d7fe7e9/index.css';
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
+
+/*
+  CANOPY — research custody.
+  Palette: herbarium paper + pine ink + field-notebook ochre.
+  Deliberately not a "SaaS purple" product: this is lab equipment.
+*/
+:root {
+  --background: oklch(0.985 0.006 95);
+  --foreground: oklch(0.215 0.022 164);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.215 0.022 164);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.215 0.022 164);
+  --primary: oklch(0.435 0.088 162);
+  --primary-foreground: oklch(0.985 0.008 95);
+  --secondary: oklch(0.948 0.012 100);
+  --secondary-foreground: oklch(0.285 0.03 162);
+  --muted: oklch(0.956 0.008 100);
+  --muted-foreground: oklch(0.495 0.021 152);
+  --accent: oklch(0.935 0.036 86);
+  --accent-foreground: oklch(0.34 0.06 62);
+  --destructive: oklch(0.545 0.19 27);
+  --destructive-foreground: oklch(0.985 0.008 95);
+  --border: oklch(0.898 0.012 100);
+  --input: oklch(0.898 0.012 100);
+  --ring: oklch(0.55 0.088 162);
+  --ok: oklch(0.52 0.11 156);
+  --warn: oklch(0.63 0.145 62);
+  --info: oklch(0.52 0.1 232);
+  --seal: oklch(0.44 0.09 162);
+  --chart-1: oklch(0.45 0.09 162);
+  --chart-2: oklch(0.66 0.14 68);
+  --chart-3: oklch(0.55 0.13 32);
+  --chart-4: oklch(0.55 0.08 215);
+  --chart-5: oklch(0.6 0.07 128);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.968 0.008 100);
+  --sidebar-foreground: oklch(0.255 0.024 164);
+  --sidebar-primary: oklch(0.435 0.088 162);
+  --sidebar-primary-foreground: oklch(0.985 0.008 95);
+  --sidebar-accent: oklch(0.93 0.016 110);
+  --sidebar-accent-foreground: oklch(0.255 0.024 164);
+  --sidebar-border: oklch(0.898 0.012 100);
+  --sidebar-ring: oklch(0.55 0.088 162);
+  --grid-line: oklch(0.9 0.012 100);
+}
+:root.dark {
+  color-scheme: dark;
+  --background: oklch(0.178 0.013 168);
+  --foreground: oklch(0.951 0.008 95);
+  --card: oklch(0.215 0.015 168);
+  --card-foreground: oklch(0.951 0.008 95);
+  --popover: oklch(0.228 0.016 168);
+  --popover-foreground: oklch(0.951 0.008 95);
+  --primary: oklch(0.755 0.132 160);
+  --primary-foreground: oklch(0.185 0.032 166);
+  --secondary: oklch(0.272 0.016 168);
+  --secondary-foreground: oklch(0.951 0.008 95);
+  --muted: oklch(0.258 0.015 168);
+  --muted-foreground: oklch(0.705 0.017 150);
+  --accent: oklch(0.305 0.032 80);
+  --accent-foreground: oklch(0.905 0.062 84);
+  --destructive: oklch(0.62 0.19 26);
+  --destructive-foreground: oklch(0.97 0.01 95);
+  --border: oklch(0.29 0.016 168);
+  --input: oklch(0.312 0.017 168);
+  --ring: oklch(0.6 0.1 160);
+  --ok: oklch(0.755 0.128 158);
+  --warn: oklch(0.795 0.148 74);
+  --info: oklch(0.71 0.108 236);
+  --seal: oklch(0.755 0.132 160);
+  --chart-1: oklch(0.755 0.132 160);
+  --chart-2: oklch(0.795 0.148 74);
+  --chart-3: oklch(0.7 0.14 34);
+  --chart-4: oklch(0.7 0.09 218);
+  --chart-5: oklch(0.75 0.08 130);
+  --sidebar: oklch(0.2 0.014 168);
+  --sidebar-foreground: oklch(0.925 0.01 95);
+  --sidebar-primary: oklch(0.755 0.132 160);
+  --sidebar-primary-foreground: oklch(0.185 0.032 166);
+  --sidebar-accent: oklch(0.268 0.016 168);
+  --sidebar-accent-foreground: oklch(0.951 0.008 95);
+  --sidebar-border: oklch(0.29 0.016 168);
+  --sidebar-ring: oklch(0.6 0.1 160);
+  --grid-line: oklch(0.262 0.016 168);
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: 2px solid color-mix(in oklch, var(--ring) 50%, transparent);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 26%, transparent);
+  }
+
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="date"],
+  input:not([type]),
+  textarea {
+    @apply bg-background/50 shadow-sm transition-all !important;
+  }
+  input[type="text"]::placeholder,
+  input[type="password"]::placeholder,
+  input[type="email"]::placeholder,
+  input:not([type])::placeholder,
+  textarea::placeholder {
+    @apply text-muted-foreground/40 !important;
+  }
+  input[type="text"]:focus-visible,
+  input[type="password"]:focus-visible,
+  input[type="email"]:focus-visible,
+  input[type="date"]:focus-visible,
+  input:not([type]):focus-visible,
+  textarea:focus-visible {
+    @apply border-primary/50 bg-background outline-none ring-0 ring-offset-0 !important;
+    box-shadow: none !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-border/40 rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-border/80;
+  }
+}
+@layer components {
+  /* Field-notebook ruling used behind empty states and the vault door. */
+  .surface-ruled {
+    background-image: linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 100% 28px;
+  }
+  .surface-grid {
+    background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .hairline-t {
+    box-shadow: inset 0 1px 0 var(--border);
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+  .squircle-element {
+    corner-shape: squircle;
+    border-radius: 0.75rem;
+  }
+  .squircle-element-sm {
+    corner-shape: squircle;
+    border-radius: 0.5rem;
+  }
+  .transition-elegant {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .hover-scale {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .hover-scale:hover {
+    transform: scale(1.03);
+  }
+  .active-scale {
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .active-scale:active {
+    transform: scale(0.97);
+  }
+  .glass-panel {
+    background: color-mix(in oklch, var(--background) 85%, transparent);
+    backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+    box-shadow: 0 4px 24px -4px color-mix(in oklch, var(--foreground) 3%, transparent);
+  }
+}
+/* Screen-capture deterrent: applied to the protected viewer only. */
+.capture-guard {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.guard-obscured {
+  filter: blur(18px) saturate(0.35);
+  transition: filter 120ms linear;
+}
+@media print {
+  /* Protected surfaces must never reach a printer or "print to PDF". */
+  .capture-guard,
+  [data-protected='true'] {
+    display: none !important;
+  }
+  body::after {
+    content: 'Canopy protected content is not printable.';
+    font-family: 'Geist Mono', monospace;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
