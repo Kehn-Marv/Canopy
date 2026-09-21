@@ -27,6 +27,7 @@ import { buildContainer, containerFileName, provenanceFooter } from './container
 import { watermarkImage, watermarkText } from './watermark';
 import { isValidEmail } from './format';
 import { readCipherChunks } from './vault';
+import { uploadToCloud } from './cloud';
 import type {
   AccessDecision,
   Asset,
@@ -39,6 +40,7 @@ import type {
 '../types';
 import type { Actor } from './vault';
 import { ValidationError } from './vault';
+import type { ChunkRecord } from '../types';
 
 export function grantLink(token: string): string {
   const { origin, pathname } = window.location;
@@ -140,6 +142,15 @@ input: CreateGrantInput)
       deviceBound: input.bindDevice
     }
   });
+
+  try {
+    const chunks = await getAllByIndex<ChunkRecord>(STORES.chunks, 'assetId', input.asset.id);
+    await uploadToCloud(input.asset, chunks, grant);
+  } catch (err) {
+    console.error('Failed to sync grant to cloud:', err);
+    // Don't fail the local grant creation if cloud sync fails
+  }
+
   return { grant, token, link: grantLink(token) };
 }
 
@@ -284,6 +295,8 @@ export interface OpenResult {
   contentKey?: CryptoKey;
 }
 
+import { fetchGrantFromCloud } from './cloud';
+
 export async function inspectToken(token: string): Promise<{grant?: Grant;asset?: Asset;}> {
   let id: string;
   try {
@@ -292,7 +305,12 @@ export async function inspectToken(token: string): Promise<{grant?: Grant;asset?
     return {};
   }
   const grant = await get<Grant>(STORES.grants, id);
-  if (!grant) return {};
+  if (!grant) {
+    // Fall back to cloud fetch
+    const remote = await fetchGrantFromCloud(id);
+    if (!remote) return {};
+    return { grant: remote.grant, asset: remote.asset };
+  }
   const asset = await get<Asset>(STORES.assets, grant.assetId);
   return { grant, asset };
 }

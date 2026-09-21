@@ -91,6 +91,7 @@ interface VaultValue {
   busy: boolean;
 
   createVault: (input: {
+    username: string;
     labName: string;
     orgDomain: string;
     ownerName: string;

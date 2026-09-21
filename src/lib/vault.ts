@@ -22,6 +22,7 @@ import {
   wrapContentKey,
   KDF_ITERATIONS } from
 './crypto';
+import { fetchChunkFromCloud } from './cloud';
 import { STORES, casPut, get, getAll, getAllByIndex, put, putMany } from './db';
 import { appendEvent } from './ledger';
 import { kindFor, sanitiseFileName } from './format';
@@ -281,7 +282,7 @@ export async function recoverPassphrase(input: {
   /* Unwrap the original master key. */
   let rawMaster: ArrayBuffer;
   try {
-    rawMaster = (await unseal(recoveryKey, meta.recoveryWrappedKey)).buffer;
+    rawMaster = await unseal(recoveryKey, meta.recoveryWrappedKey);
   } catch {
     throw new ValidationError('That answer does not match. Recovery failed.');
   }
@@ -568,20 +569,40 @@ options: {
   const chunks = (await getAllByIndex<ChunkRecord>(STORES.chunks, 'assetId', asset.id)).sort(
     (a, b) => a.index - b.index
   );
-  if (chunks.length !== asset.chunkCount) {
+  
+  const isRemote = (asset as any).isRemote === true;
+  if (!isRemote && chunks.length !== asset.chunkCount) {
     return { blob: new Blob([]), integrityOk: false, failedChunk: chunks.length };
   }
+  
   const parts: ArrayBuffer[] = [];
   const digests: string[] = [];
-  for (const chunk of chunks) {
+  for (let i = 0; i < asset.chunkCount; i++) {
     if (options.control) await waitWhilePaused(options.control);
+    
+    let chunk: ChunkRecord | null = null;
+    if (isRemote) {
+      const remoteChunk = await fetchChunkFromCloud(asset.id, i);
+      if (!remoteChunk) return { blob: new Blob([]), integrityOk: false, failedChunk: i };
+      chunk = {
+        assetId: asset.id,
+        index: i,
+        iv: remoteChunk.iv,
+        digest: remoteChunk.digest,
+        bytes: remoteChunk.data.byteLength,
+        data: remoteChunk.data
+      };
+    } else {
+      chunk = chunks[i];
+    }
+
     const digest = await sha256Hex(chunk.data);
     if (digest !== chunk.digest) {
       return { blob: new Blob([]), integrityOk: false, failedChunk: chunk.index };
     }
     digests.push(digest);
     parts.push(await decryptChunk(contentKey, chunk.iv, chunk.data));
-    options.onProgress?.(parts.length, chunks.length);
+    options.onProgress?.(parts.length, asset.chunkCount);
     await new Promise((r) => setTimeout(r, 0));
   }
   const root = await rootFromChunkDigests(digests);
